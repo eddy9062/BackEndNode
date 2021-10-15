@@ -33,7 +33,7 @@ function registrar(req, res) {
 function login(req, res) {
     var data = req.body;
 
-    console.log('usuario ' + data.usuario);
+    //console.log('usuario ' + data.usuario);
 
     User.findOne({ usuario: data.usuario }, (err, user_data) => {
         if (err) {
@@ -61,7 +61,7 @@ function login(req, res) {
                     }
                 });
             } else {
-                console.log(user_data);
+                //console.log(user_data);
                 res.status(403).send({ message: 'El usuario no existe' });
             }
         }
