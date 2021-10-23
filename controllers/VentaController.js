@@ -43,8 +43,8 @@ function registrar(req, res) {
                                 if (producto_data) {
                                     Producto.findByIdAndUpdate({ _id: producto_data._id }, { stock: parseInt(producto_data.stock) - parseInt(d.cantidad) }, (err, producto_edit) => {
                                         //res.status(200).send({ message: "Venta registrada correctmente" });
-                                        console.log("Producto edigato ", producto_edit.titulo)
-                                            //res.end;
+                                        // console.log("Producto edigato ", producto_edit.titulo)
+                                        //res.end;
                                     });
                                 } else {
                                     res.send(err);
@@ -226,6 +226,41 @@ function listadoVenta(req, res) {
         },
         { $unwind: "$bodega" },
         { $group: { _id: { iduser: '$iduser', fecha: '$fecha', bodega: '$bodega.titulo' }, total: { $sum: { $multiply: ["$detalleventa.precio", "$detalleventa.cantidad"] } } } },
+    ]).exec((err, data_venta) => {
+        if (data_venta) {
+            res.status(200).send({ data_venta });
+        } else {
+            res.status(404).send({ message: 'No hay registro de ventas' });
+        }
+    });
+}
+
+function listadoVentaDia(req, res) {
+    //const idUser = mongoose.Types.ObjectId(req.params['idUser']);
+    const pfecha = req.params['fecha'];
+
+    Venta.aggregate([
+        { $match: { fecha: pfecha } },
+        { $unwind: "$detalleventa" },
+        {
+            $lookup: {
+                from: 'productos',
+                localField: 'detalleventa.idproducto',
+                foreignField: '_id',
+                as: 'prod'
+            },
+        },
+        { $unwind: "$prod" },
+        {
+            $lookup: {
+                from: 'bodegas',
+                localField: 'prod.idbodega',
+                foreignField: '_id',
+                as: 'bodega'
+            },
+        },
+        { $unwind: "$bodega" },
+        { $group: { _id: { fecha: '$fecha', bodega: '$bodega.titulo' }, total: { $sum: { $multiply: ["$detalleventa.precio", "$detalleventa.cantidad"] } } } },
     ]).exec((err, data_venta) => {
         if (data_venta) {
             res.status(200).send({ data_venta });
@@ -448,6 +483,7 @@ module.exports = {
     registrar,
     //datos_venta,
     listadoVenta,
+    listadoVentaDia,
     //detalleVentas,
     //totalVenta
 }
