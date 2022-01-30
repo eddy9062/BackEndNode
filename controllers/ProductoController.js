@@ -123,7 +123,7 @@ function editar(req, res) {
     const img = req.params['img']
 
     //console.log(req);
-    //console.log(req.files);
+    //    console.log(data);
 
     if (req.files.imagen) {
         // esto se encarga de eliminar la imagen anterior antes de agregar la nueva
@@ -144,6 +144,7 @@ function editar(req, res) {
             imagen: imagen_name,
             precio_compra: data.precio_compra,
             precio_venta: data.precio_venta,
+            idbodega: data.idbodega,
             stock: data.stock
         }, (err, producto_edit) => {
             if (err) {
@@ -162,6 +163,7 @@ function editar(req, res) {
             descripcion: data.descripcion,
             precio_compra: data.precio_compra,
             precio_venta: data.precio_venta,
+            idbodega: data.idbodega,
             stock: data.stock
         }, (err, producto_edit) => {
             if (err) {
