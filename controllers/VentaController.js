@@ -3,13 +3,17 @@ const Producto = require('../models/producto')
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-
+function parseId(id) {
+    return mongoose.Types.ObjectId(id);
+}
 
 //const mongoose = require('mongoose');
 
 function registrar(req, res) {
     const data = req.body;
     const venta = new Venta();
+
+
     venta.fecha = data.fecha
     venta.idcliente = data.idcliente;
     venta.iduser = data.iduser;
@@ -20,41 +24,95 @@ function registrar(req, res) {
         if (venta_save) {
             //const det = JSON.parse(data.detalleventa);
             const det = data.detalleventa;
-            //console.log(det)
-            det.forEach(d => {
-                    Venta.updateOne({ _id: venta_save._id }, {
-                        $push: {
-                            detalleventa: {
-                                idproducto: d._id,
-                                precio: d.precio_venta,
-                                cantidad: d.cantidad
-                            }
-                        }
-                    }, (err, det_save) => {
-                        if (err) {
-                            res.status(403).send({
-                                success: false,
-                                msj: 'No se pudo grabar el detalle',
-                                err
-                            })
-                        } else {
-                            //console.log(det_save);
-                            Producto.findById({ _id: d._id }, (err, producto_data) => {
-                                if (producto_data) {
-                                    Producto.findByIdAndUpdate({ _id: producto_data._id }, { stock: parseInt(producto_data.stock) - parseInt(d.cantidad) }, (err, producto_edit) => {
-                                        //res.status(200).send({ message: "Venta registrada correctmente" });
-                                        // console.log("Producto edigato ", producto_edit.titulo)
-                                        //res.end;
-                                    });
-                                } else {
-                                    res.send(err);
-                                }
-                            });
-                        }
+            var detprod = [];
+            var result = [];
 
-                    })
+
+            //console.log(det)
+            det.forEach((d) => {
+                //console.log(parseInt(d.cantidad * d.cantref))
+                //this.contidad += parseInt(d.cantidad * d.cantref)
+                //await 
+                Venta.updateOne({ _id: venta_save._id }, {
+                    $push: {
+                        detalleventa: {
+                            idproducto: d._id,
+                            idDetProd: d.idDetProd,
+                            precio: d.precio_venta,
+                            cantidad: d.cantidad
+                        }
+                    }
+                }, (err, det_save) => {
+                    // console.log(err)
+                    if (det_save) {
+                        /* Producto.findById({ _id: d._id }, (err, producto_data) => {
+                            if (producto_data) {
+                                Producto.findByIdAndUpdate({ _id: producto_data._id }, {
+                                    $set: { stock: parseInt(producto_data.stock) - parseInt(d.cantidad * d.cantref) }
+                                }, (err, producto_edit) => {
+                                    if (producto_edit) {
+                                        console.log('prod ', producto_data._id, " ", d.idDetProd, "  ", producto_data.stock, "  ", producto_edit.stock)
+                                    } else {
+                                        console.log('err prod ' + err)
+                                        res.end;
+                                    }
+
+                                });
+                            } else {
+                                res.send(err);
+                            }
+                        });
+                    } else {
+                        res.status(403).send({
+                            success: false,
+                            msj: 'No se pudo grabar el detalle',
+                            err
+                        })*/
+                        res.end;
+                    }
                 })
-                //res.status(200).send(venta_save);
+            })
+
+            detprod = det.reduce((anterior, actual) => {
+                let clave = actual._id
+                if (!anterior[clave]) {
+                    anterior[clave] = {
+                        Id: actual._id,
+                        cantidad: 0
+                    }
+                    result.push(anterior[clave])
+                }
+                anterior[clave].cantidad += actual.cantidad * actual.cantref
+                return anterior
+            }, {})
+
+            /* detprod = det.reduce(function(anterior, actual) {
+                 if (!anterior[actual._id]) {
+                     anterior[actual._id] = { Id: actual._id, cantidad: 0 };
+                     result.push(anterior[actual._id])
+                 }
+                 anterior[actual._id].cantidad += actual.cantidad * actual.cantref;
+                 return anterior;
+             }, {});*/
+
+            // console.log(Object.values(detprod))
+            Object.values(detprod).forEach((p) => {
+                Producto.findById({ _id: p.Id }, (err, producto_data) => {
+                    if (producto_data) {
+                        Producto.findByIdAndUpdate({ _id: producto_data._id }, {
+                            $set: { stock: parseInt(producto_data.stock) - parseInt(p.cantidad) }
+                        }, (err, producto_edit) => {
+                            if (producto_edit) {
+                                res.end;
+                            } else {
+                                res.send(err);
+                            }
+                        });
+                    } else {
+                        res.send(err);
+                    }
+                })
+            })
             res.status(200).send({ message: "Venta registrada correctmente" });
         } else {
             console.log("Errro ", err);
@@ -201,8 +259,8 @@ function listadoVenta(req, res) {
 function listadoVenta(req, res) {
     const idUser = mongoose.Types.ObjectId(req.params['idUser']);
     const pfecha = req.params['fecha'];
-    console.log(idUser)
-    console.log(pfecha)
+    //console.log(idUser)
+    //console.log(pfecha)
 
     Venta.aggregate([
         { $match: { iduser: idUser, fecha: pfecha } },

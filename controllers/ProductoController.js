@@ -1,7 +1,15 @@
 const Producto = require('../models/producto');
 const fs = require('fs');
+const mongoose = require('mongoose')
+
 var path = require('path');
 
+//https: //www.youtube.com/watch?v=CH_xdXXQZ5w
+//https://www.youtube.com/watch?v=szEHxlvEY0U
+
+function parseId(id) {
+    return mongoose.Types.ObjectId(id);
+}
 
 function registrar(req, res) {
 
@@ -10,56 +18,51 @@ function registrar(req, res) {
 
     //console.log(data);
 
-    if (req.files.imagen) {
+    const producto = new Producto();
+    producto.titulo = data.titulo.toUpperCase();
+    producto.descripcion = data.descripcion.toUpperCase();
+    producto.imagen = null;
+    producto.precio_compra = data.precio_compra;
+    producto.stock = data.stock;
+    producto.idbodega = data.idbodega;
 
-        const imagen_path = req.files.imagen.path;
-        const name = imagen_path.split("\\");
-        const imagen_name = name[2];
-
-        const producto = new Producto();
-        producto.titulo = data.titulo;
-        producto.descripcion = data.descripcion;
-        producto.imagen = imagen_name;
-        producto.precio_compra = data.precio_compra;
-        producto.precio_venta = data.precio_venta;
-        producto.stock = data.stock;
-        producto.idbodega = data.idbodega;
-
-        producto.save((err, producto_save) => {
+    producto.save((err, producto_save) => {
+        if (producto_save) {
+            //const det = JSON.parse(data.detproducto);
+            const det = data.detproducto;
+            console.log(det)
+            det.forEach(d => {
+                Producto.updateOne({ _id: producto_save._id }, {
+                    $push: {
+                        detproducto: {
+                            descripcion: d.descripcion.toUpperCase(),
+                            precio_venta: d.precio_venta,
+                            cantidad: d.cantidad
+                        }
+                    }
+                }, (err, det_save) => {
+                    if (err) {
+                        res.status(403).send({
+                            success: false,
+                            msj: 'No se pudo grabar el detalle',
+                            err
+                        })
+                    }
+                })
+            })
+            res.status(200).send({ message: "Producto registrado correctmente" });
+        } else {
             if (err) {
-                res.status(500).send({ message: 'Error en el servidor' })
-            } else {
-                if (producto_save) {
-                    res.status(200).send({ producto: producto_save })
-                } else {
-                    res.status(403).send({ message: 'No se registro los datos' })
-                }
+                res.status(403).send({
+                    success: false,
+                    msj: 'No se pudo grabar el Producto',
+                    err
+                })
             }
-        })
-    } else {
-        const producto = new Producto();
-        producto.titulo = data.titulo;
-        producto.descripcion = data.descripcion;
-        producto.imagen = null;
-        producto.precio_compra = data.precio_compra;
-        producto.precio_venta = data.precio_venta;
-        producto.stock = data.stock;
-        producto.idbodega = data.idbodega;
-
-        producto.save((err, producto_save) => {
-            if (err) {
-                res.status(500).send({ message: 'Error en el servidor' })
-            } else {
-                if (producto_save) {
-                    res.status(200).send({ producto: producto_save })
-                } else {
-                    res.status(403).send({ message: 'No se registro los datos' })
-                }
-            }
-        })
-    }
-
+        }
+    })
 }
+
 /*
 function listar(req, res) {
     var descripcion = req.params['descripcion'];
@@ -116,7 +119,88 @@ function listar(req, res) {
         }
     });
 }*/
+function editar(req, res) {
+    const data = req.body;
+    const id = req.params['id'];
 
+    console.log(data);
+
+    Producto.findByIdAndUpdate({ _id: id }, {
+        $set: data
+    }, (err, info) => {
+        if (err) {
+            console.log(err);
+            res.status(403).send({
+                success: false,
+                msj: 'No se pudo grabar el detalle',
+                err
+            })
+        } else {
+            console.log(info);
+            res.status(200).send({ message: "Producto registrado correctmente" });
+        }
+    })
+}
+/*
+function editar(req, res) {
+    const data = req.body;
+    const id = req.params['id'];
+
+    //console.log(req);
+    console.log(data);
+
+    Producto.findByIdAndUpdate({ _id: id }, {
+        titulo: data.titulo,
+        descripcion: data.descripcion,
+        precio_compra: data.precio_compra,
+        idbodega: data.idbodega,
+        stock: data.stock
+    }, (err, producto_edit) => {
+        if (producto_edit) {
+            //const det = JSON.parse(data.detproducto);
+            const det = data.detproducto;
+            console.log(det)
+            det.forEach(d => {
+                Producto.detproducto.update({ _id: parseId(producto_edit.detproducto._id) }, {
+                    descripcion: d.descripcion,
+                    precio_venta: d.precio_venta,
+                    cantidad: d.cantidad
+                }, (err) => {
+                    if (err) {
+                        res.status(403).send({
+                            success: false,
+                            msj: 'No se pudo grabar el detalle',
+                            err
+                        })
+                    }
+                })
+            })
+            res.status(200).send({ message: "Producto registrado correctmente" });
+        } else {
+            if (err) {
+                res.status(403).send({
+                    success: false,
+                    msj: 'No se pudo grabar el Producto',
+                    err
+                })
+            }
+        }
+    })
+}*/
+
+
+
+
+/*if (err) {
+    res.status(500).send({ message: 'Error en el servidor' })
+} else {
+    if (producto_edit) {
+        res.status(200).send({ producto: producto_edit })
+    } else {
+        res.status(403).send({ message: 'No se pudo editar el producto' })
+    }
+}*/
+/*
 function editar(req, res) {
     const data = req.body;
     const id = req.params['id'];
@@ -177,9 +261,7 @@ function editar(req, res) {
             }
         })
     }
-
-
-}
+}*/
 
 function obtener_producto(req, res) {
     const id = req.params['id'];

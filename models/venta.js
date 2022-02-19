@@ -7,6 +7,7 @@ var VentaSchema = Schema({
     fecha: { type: String },
     detalleventa: [{
         idproducto: { type: Schema.ObjectId, ref: 'producto' },
+        idDetProd: { type: Schema.ObjectId, ref: 'producto.detproducto' },
         precio: { type: Number },
         cantidad: { type: Number },
     }]
